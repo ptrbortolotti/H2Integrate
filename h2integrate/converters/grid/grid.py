@@ -66,7 +66,7 @@ class GridPerformanceModel(PerformanceModelBaseClass):
             additional_cls_name=self.__class__.__name__,
         )
 
-        n_timesteps = self.options["plant_config"]["plant"]["simulation"]["n_timesteps"]
+        n_timesteps = self.n_timesteps = self.options["plant_config"]["plant"]["simulation"]["n_timesteps"]
 
         # Interconnection size input
         self.add_input(
@@ -127,6 +127,17 @@ class GridPerformanceModel(PerformanceModelBaseClass):
             units=f"({self.commodity_amount_units})/year",
             desc="Annual electricity sold to the grid",
         )
+        
+        self.add_output(
+            "average_fraction_power_met",
+            val=0.0,
+            desc="Average fraction of the interconnection capacity that was met by electricity sold to the grid",
+        )
+        self.add_output(
+            "time_fraction_power_met",
+            val=0.0,
+            desc="Fraction of time steps where the interconnection capacity was fully met by electricity sold to the grid",
+        )
 
     def compute(self, inputs, outputs):
         interconnection_size = inputs["interconnection_size"]
@@ -161,6 +172,9 @@ class GridPerformanceModel(PerformanceModelBaseClass):
         outputs["annual_electricity_sold"] = total_electricity_sold * (
             1 / self.fraction_of_year_simulated
         )
+
+        outputs["average_fraction_power_met"] = np.average(electricity_sold) / interconnection_size
+        outputs["time_fraction_power_met"] = np.sum(electricity_sold >= 0.9999 * interconnection_size) / self.n_timesteps
 
 
 @define(kw_only=True)
